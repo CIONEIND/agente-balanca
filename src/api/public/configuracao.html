@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuração da Balança</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --painel: #1e293b;
+    --borda: #334155;
+    --texto: #e2e8f0;
+    --suave: #94a3b8;
+    --primario: #3b82f6;
+    --ok: #22c55e;
+    --erro: #ef4444;
+    --aviso: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--texto);
+    padding: 24px;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .subtitulo { color: var(--suave); font-size: 14px; margin-bottom: 24px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+  .painel {
+    background: var(--painel);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .painel h2 {
+    font-size: 15px; margin: 0 0 16px; color: var(--suave);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--suave); }
+  select, input {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    color: var(--texto);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--primario); }
+  input:disabled { opacity: 0.6; cursor: not-allowed; }
+  .campo { margin-bottom: 14px; }
+
+  button {
+    padding: 9px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primario { background: var(--primario); color: white; }
+  .btn-primario:hover:not(:disabled) { background: #2563eb; }
+  .btn-secundario { background: var(--borda); color: var(--texto); }
+  .btn-secundario:hover:not(:disabled) { background: #475569; }
+  .acoes { display: flex; gap: 10px; margin-top: 16px; }
+
+  .linha-token { display: flex; gap: 8px; }
+  .linha-token input { flex: 1; }
+  .linha-token button { white-space: nowrap; }
+
+  .status-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--borda);
+    font-size: 14px;
+  }
+  .status-linha:last-child { border-bottom: none; }
+  .status-linha span:first-child { color: var(--suave); }
+
+  .peso-grande {
+    font-size: 42px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    padding: 16px 0;
+    letter-spacing: -1px;
+  }
+  .peso-unidade { font-size: 18px; color: var(--suave); font-weight: 400; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-ok { background: rgba(34, 197, 94, 0.15); color: var(--ok); }
+  .badge-erro { background: rgba(239, 68, 68, 0.15); color: var(--erro); }
+  .badge-aviso { background: rgba(245, 158, 11, 0.15); color: var(--aviso); }
+  .badge-neutro { background: rgba(148, 163, 184, 0.15); color: var(--suave); }
+
+  .resultado-teste {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    display: none;
+  }
+  .resultado-teste.visivel { display: block; }
+  .resultado-teste.ok { background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); }
+  .resultado-teste.erro { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); }
+  .resultado-teste code { font-size: 11px; color: var(--suave); word-break: break-all; }
+
+  .aviso-token {
+    margin-top: 20px;
+    padding: 12px;
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--aviso);
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Configuração da Balança</h1>
+  <p class="subtitulo">Agente local — selecione o perfil e valide a comunicação antes de salvar.</p>
+
+  <div class="grid">
+    <!-- coluna esquerda: configuração -->
+    <div class="painel">
+      <h2>Perfil</h2>
+
+      <div class="campo">
+        <label for="perfil">Modelo da balança</label>
+        <select id="perfil"></select>
+      </div>
+
+      <div class="campo">
+        <label for="porta">Porta serial</label>
+        <select id="porta"></select>
+      </div>
+
+      <div class="campo">
+        <label for="token">Token local</label>
+        <div class="linha-token">
+          <input id="token" type="password" placeholder="cole o tokenLocal do config.json">
+          <button id="btn-login" class="btn-primario">Entrar</button>
+        </div>
+      </div>
+
+      <div class="acoes">
+        <button id="btn-testar" class="btn-secundario">Testar comunicação</button>
+        <button id="btn-salvar" class="btn-primario" disabled>Salvar</button>
+      </div>
+      <div class="acoes" style="margin-top: 10px;">
+        <button id="btn-reconectar" class="btn-secundario" disabled>Reconectar agora</button>
+      </div>
+      <div id="resultado-teste" class="resultado-teste"></div>
+
+      <div class="aviso-token">
+        O token local está em <code>config.json</code>, campo <code>tokenLocal</code>.
+        Ele é exigido para testar e salvar.
+      </div>
+    </div>
+
+    <!-- coluna direita: status ao vivo -->
+    <div class="painel">
+      <h2>Status ao vivo</h2>
+
+      <div class="peso-grande">
+        <span id="peso">—</span>
+        <span id="unidade" class="peso-unidade"></span>
+      </div>
+
+      <div class="status-linha">
+        <span>Estabilidade</span>
+        <span id="estabilidade"><span class="badge badge-neutro">—</span></span>
+      </div>
+      <div class="status-linha">
+        <span>Conexão</span>
+        <span id="conexao"><span class="badge badge-neutro">—</span></span>
+      </div>
+      <div class="status-linha">
+        <span>Perfil ativo</span>
+        <span id="perfil-ativo">—</span>
+      </div>
+      <div class="status-linha">
+        <span>Porta</span>
+        <span id="porta-ativa">—</span>
+      </div>
+      <div class="status-linha">
+        <span>Última leitura</span>
+        <span id="ultima-leitura">—</span>
+      </div>
+      <div class="status-linha" id="linha-reconexao" style="display: none;">
+        <span>Reconexão</span>
+        <span id="reconexao">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var API = window.location.origin;
+  var el = function (id) { return document.getElementById(id); };
+
+  var perfis = [];
+  var testeOk = false;
+  var autenticado = false;
+  var ws = null;
+
+  // ---------- utilidades ----------
+
+  function mostrarResultado(ok, html) {
+    var box = el("resultado-teste");
+    box.className = "resultado-teste visivel " + (ok ? "ok" : "erro");
+    box.innerHTML = html;
+  }
+
+  function esconderResultado() {
+    el("resultado-teste").className = "resultado-teste";
+  }
+
+  function invalidarTeste() {
+    testeOk = false;
+    el("btn-salvar").disabled = true;
+  }
+
+  // ---------- autenticação ----------
+
+  async function verificarSessao() {
+    try {
+      var res = await fetch(API + "/auth/sessao", { credentials: "same-origin" });
+      var r = await res.json();
+      autenticado = !!r.autenticado;
+    } catch (err) {
+      autenticado = false;
+    }
+    atualizarEstadoAuth();
+  }
+
+  function atualizarEstadoAuth() {
+    var btn = el("btn-login");
+    var input = el("token");
+
+    if (autenticado) {
+      btn.textContent = "Sair";
+      btn.className = "btn-secundario";
+      input.value = "";
+      input.disabled = true;
+      input.placeholder = "sessão ativa";
+    } else {
+      btn.textContent = "Entrar";
+      btn.className = "btn-primario";
+      input.disabled = false;
+      input.placeholder = "cole o tokenLocal do config.json";
+    }
+  }
+
+  async function alternarLogin() {
+    if (autenticado) {
+      try {
+        await fetch(API + "/auth/logout", {
+          method: "POST",
+          credentials: "same-origin"
+        });
+      } catch (err) {
+        // mesmo se falhar, reflete o estado local
+      }
+      autenticado = false;
+      atualizarEstadoAuth();
+      invalidarTeste();
+      esconderResultado();
+      return;
+    }
+
+    var token = el("token").value.trim();
+    if (!token) {
+      mostrarResultado(false, "Informe o token local para entrar.");
+      return;
+    }
+
+    var btn = el("btn-login");
+    btn.disabled = true;
+    btn.textContent = "Entrando...";
+
+    try {
+      var res = await fetch(API + "/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ token: token })
+      });
+
+      if (res.ok) {
+        autenticado = true;
+        atualizarEstadoAuth();
+        mostrarResultado(true, "<strong>Sessão iniciada.</strong> Você já pode testar e salvar.");
+      } else {
+        var r = await res.json().catch(function () { return {}; });
+        mostrarResultado(false, "Token inválido." + (r.erro ? " (" + r.erro + ")" : ""));
+        btn.textContent = "Entrar";
+      }
+    } catch (err) {
+      mostrarResultado(false, "Falha na requisição: " + err.message);
+      btn.textContent = "Entrar";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ---------- carregamento ----------
+  async function carregarPortas() {
+  var res = await fetch(API + "/portas", { credentials: "same-origin" });
+  var r = await res.json();
+
+  var select = el("porta");
+  select.innerHTML = "";
+
+  for (var i = 0; i < r.portas.length; i++) {
+    var opt = document.createElement("option");
+    opt.value = r.portas[i];
+    opt.textContent = r.portas[i] === "SIM" ? "SIM (simulador)" : r.portas[i];
+    select.appendChild(opt);
+  }
+
+  return r;
+}
+  async function carregarPerfis() {
+    var res = await fetch(API + "/perfis", { credentials: "same-origin" });
+    perfis = await res.json();
+
+    var select = el("perfil");
+    select.innerHTML = "";
+    for (var i = 0; i < perfis.length; i++) {
+      var opt = document.createElement("option");
+      opt.value = perfis[i].id;
+      opt.textContent = perfis[i].descricao;
+      select.appendChild(opt);
+    }
+  }
+
+  async function carregarConfig() {
+  var res = await fetch(API + "/config", { credentials: "same-origin" });
+  var cfg = await res.json();
+
+  el("perfil").value = cfg.perfil;
+
+  // se a porta ativa não estiver na lista, acrescenta para não perder o valor
+  var selectPorta = el("porta");
+  var existe = Array.prototype.some.call(
+    selectPorta.options,
+    function (o) { return o.value === cfg.porta; }
+  );
+  if (!existe && cfg.porta) {
+    var opt = document.createElement("option");
+    opt.value = cfg.porta;
+    opt.textContent = cfg.porta + " (atual)";
+    selectPorta.appendChild(opt);
+  }
+  selectPorta.value = cfg.porta;
+
+  el("perfil-ativo").textContent = cfg.descricaoPerfil;
+  el("porta-ativa").textContent = cfg.porta;
+}
+
+  // ---------- teste ----------
+
+  async function testar() {
+    var perfil = el("perfil").value;
+    var porta = el("porta").value.trim();
+
+    if (!porta) {
+      mostrarResultado(false, "Informe a porta serial antes de testar.");
+      return;
+    }
+    if (!autenticado) {
+      mostrarResultado(false, "Faça login antes de testar.");
+      return;
+    }
+
+    var btn = el("btn-testar");
+    btn.disabled = true;
+    btn.textContent = "Testando...";
+    invalidarTeste();
+
+    try {
+      var res = await fetch(API + "/config/testar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ perfil: perfil, porta: porta })
+      });
+
+      var r = await res.json();
+
+      if (res.status === 401) {
+        autenticado = false;
+        atualizarEstadoAuth();
+        mostrarResultado(false, "Sessão expirada. Faça login novamente.");
+        return;
+      }
+
+      if (!res.ok) {
+        mostrarResultado(false, "Erro: " + (r.erro || res.status));
+        return;
+      }
+
+      if (r.ok) {
+        testeOk = true;
+        el("btn-salvar").disabled = false;
+        mostrarResultado(
+          true,
+          "<strong>Comunicação OK</strong><br>" +
+            "Peso lido: " + r.peso.toFixed(r.casasDecimais) + " " + r.unidade + "<br>" +
+            "<code>" + (r.raw || "") + "</code>"
+        );
+      } else {
+        mostrarResultado(false, "<strong>Sem resposta</strong><br>" + (r.erro || "erro desconhecido"));
+      }
+    } catch (err) {
+      mostrarResultado(false, "Falha na requisição: " + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Testar comunicação";
+    }
+  }
+
+  // ---------- salvar ----------
+
+  async function salvar() {
+  if (!testeOk) return;
+
+  var perfil = el("perfil").value;
+  var porta = el("porta").value.trim();
+
+  var btn = el("btn-salvar");
+  btn.disabled = true;
+  btn.textContent = "Aplicando...";
+
+  try {
+    var res = await fetch(API + "/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ perfil: perfil, porta: porta })
+    });
+
+    var r = await res.json();
+
+    if (res.status === 401) {
+      autenticado = false;
+      atualizarEstadoAuth();
+      mostrarResultado(false, "Sessão expirada. Faça login novamente.");
+      return;
+    }
+
+    if (res.status === 409) {
+      mostrarResultado(false, "<strong>Troca recusada</strong><br>" + (r.erro || ""));
+      btn.disabled = false;
+      return;
+    }
+
+    if (res.ok) {
+      mostrarResultado(true, "<strong>Perfil aplicado.</strong><br>" + (r.mensagem || ""));
+      el("perfil-ativo").textContent = perfis.find(function (p) { return p.id === r.perfil; }).descricao;
+      el("porta-ativa").textContent = r.porta;
+      testeOk = false;
+    } else {
+      mostrarResultado(false, "Erro ao salvar: " + (r.erro || res.status));
+      btn.disabled = false;
+    }
+  } catch (err) {
+    mostrarResultado(false, "Falha na requisição: " + err.message);
+    btn.disabled = false;
+  } finally {
+    btn.textContent = "Salvar";
+  }
+}
+
+  // ---------- WebSocket ----------
+
+  function conectarWs() {
+    var url = API.replace(/^http/, "ws") + "/weight";
+    ws = new WebSocket(url);
+
+    ws.onmessage = function (e) {
+      var msg = JSON.parse(e.data);
+      if (msg.tipo === "leitura") atualizarLeitura(msg.dados);
+      else if (msg.tipo === "snapshot") atualizarSnapshot(msg.dados);
+    };
+
+    ws.onclose = function () {
+      el("conexao").innerHTML = '<span class="badge badge-erro">desconectado</span>';
+      setTimeout(conectarWs, 2000);
+    };
+
+    ws.onerror = function () { ws.close(); };
+  }
+
+  function atualizarLeitura(l) {
+    el("peso").textContent = l.peso.toFixed(l.casasDecimais);
+    el("unidade").textContent = l.unidade;
+
+    el("estabilidade").innerHTML = l.estavel
+      ? '<span class="badge badge-ok">estável</span>'
+      : '<span class="badge badge-aviso">instável</span>';
+
+    el("ultima-leitura").textContent = new Date(l.recebidoEm).toLocaleTimeString("pt-BR");
+  }
+
+  function atualizarSnapshot(s) {
+  var badges = {
+    conectado: '<span class="badge badge-ok">conectado</span>',
+    conectando: '<span class="badge badge-aviso">conectando</span>',
+    desconectado: '<span class="badge badge-neutro">desconectado</span>',
+    erro: '<span class="badge badge-erro">erro</span>'
+  };
+
+  el("conexao").innerHTML = s.muda
+    ? '<span class="badge badge-erro">muda</span>'
+    : (badges[s.estado] || '<span class="badge badge-neutro">' + s.estado + "</span>");
+
+  el("perfil-ativo").textContent = s.descricaoPerfil;
+  el("porta-ativa").textContent = s.porta;
+
+  // linha de reconexão: só aparece quando há tentativa em curso
+  var linha = el("linha-reconexao");
+  var btnRec = el("btn-reconectar");
+
+  if (s.tentativaReconexao && s.tentativaReconexao > 0) {
+    linha.style.display = "flex";
+    el("reconexao").innerHTML =
+      '<span class="badge badge-aviso">tentativa ' + s.tentativaReconexao + "</span>";
+    btnRec.disabled = false;
+  } else {
+    linha.style.display = "none";
+    // habilita o botão também quando está muda, mesmo sem tentativa contada
+    btnRec.disabled = !s.muda;
+  }
+}
+async function reconectarAgora() {
+  var btn = el("btn-reconectar");
+  btn.disabled = true;
+  btn.textContent = "Reconectando...";
+
+  try {
+    var res = await fetch(API + "/reconectar", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+
+    var r = await res.json();
+
+    if (res.status === 401) {
+      autenticado = false;
+      atualizarEstadoAuth();
+      mostrarResultado(false, "Sessão expirada. Faça login novamente.");
+      return;
+    }
+
+    if (!res.ok) {
+      mostrarResultado(false, "Não foi possível reconectar: " + (r.erro || res.status));
+      return;
+    }
+
+    mostrarResultado(true, "<strong>Reconexão solicitada.</strong> Aguardando a balança responder.");
+  } catch (err) {
+    mostrarResultado(false, "Falha na requisição: " + err.message);
+  } finally {
+    btn.textContent = "Reconectar agora";
+  }
+}
+  // ---------- eventos ----------
+
+  el("btn-login").addEventListener("click", alternarLogin);
+  el("btn-testar").addEventListener("click", testar);
+  el("btn-salvar").addEventListener("click", salvar);
+  el("btn-reconectar").addEventListener("click", reconectarAgora);
+
+  el("token").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") alternarLogin();
+  });
+
+  el("perfil").addEventListener("change", function () {
+    invalidarTeste();
+    esconderResultado();
+  });
+
+  el("porta").addEventListener("change", function () {
+  invalidarTeste();
+  });
+
+  // ---------- inicialização ----------
+
+  (async function init() {
+    try {
+      await carregarPerfis();
+      await carregarPortas();
+      await carregarConfig();
+      await verificarSessao();
+      conectarWs();
+    } catch (err) {
+      console.error("Falha ao inicializar:", err);
+    }
+  })();
+})();
+</script>
+</body>
+</html>
